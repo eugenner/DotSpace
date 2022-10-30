@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
@@ -16,66 +17,24 @@ public class DotSpace : MonoBehaviour
     public GameObject rayLaser;
     public GameObject pointer;
 
+    private bool isLaserOn = false;
 
     private Button saveBtn;
     private string ouputFile;
 
-    private bool isDemo = false;
-    private float startTime;
-    private float nextTime = 0;
-
+    private LineRenderer lr;
     void Start()
     {
         points = new List<GameObject>();
-        rayLaser.SetActive(false);
-        pointer.SetActive(true);
+        rayLaser.SetActive(isLaserOn);
+        lr = rayLaser.GetComponent<LineRenderer>();
+        pointer.SetActive(!isLaserOn);
         saveBtn = GameObject.Find("Button").GetComponent<Button>();
         saveBtn.interactable = false;
-
-        if (isDemo)
-        {
-            startTime = Time.time;
-            nextTime = nextTime + startTime;
-            Debug.Log("Demo started at " + startTime);
-            rightController.position = Vector3.forward / 4f;
-            leftController.position = Vector3.forward / 5f;
-        }
-    }
-
-    private void FixedUpdate()
-    {
-        if(isDemo)
-        {
-            Debug.Log("Demo time: " + Time.time);
-            rightController.transform.Translate(Vector3.right * 0.1f * Time.fixedDeltaTime);
-
-            float val = Mathf.Floor(10 * (Time.time - startTime)) / 10;
-            if(nextTime < Time.time)
-            {
-                // TODO create point
-                nextTime = Time.time + 0.4f;
-                CreatePoint(pointer.transform.position);
-            }
-
-            if(Time.time > startTime + 3.5f)
-            {
-                isDemo = false;
-            }
-
-        } else
-        {
-            if (Time.time > startTime + 4.5f)
-            {
-                Button btn = GameObject.Find("Button").GetComponent<Button>();
-                btn.interactable = true;
-            }
-            Debug.Log("Demo was stopped");
-        }
     }
 
     void LateUpdate()
     {
-
         if (OVRInput.GetDown(OVRInput.Button.PrimaryIndexTrigger | OVRInput.Button.SecondaryIndexTrigger))
         {
             if (pointer.activeSelf)
@@ -91,15 +50,25 @@ public class DotSpace : MonoBehaviour
         {
             ToggleRayLaser();
         }
-
     }
 
     private void ToggleRayLaser()
     {
-        rayLaser.SetActive(!rayLaser.activeSelf);
-        pointer.SetActive(!pointer.activeSelf);
+        isLaserOn = !isLaserOn;
+
+        lr.enabled = false;
+        rayLaser.SetActive(isLaserOn);
+        if (isLaserOn) StartCoroutine(enableLaserRay(lr));
+
+        pointer.SetActive(!isLaserOn);
         Button btn = GameObject.Find("Button").GetComponent<Button>();
-        btn.interactable = rayLaser.activeSelf;
+        btn.interactable = isLaserOn;
+    }
+
+    IEnumerator enableLaserRay(LineRenderer lr)
+    {
+        yield return new WaitForSeconds(0.1f);
+        lr.enabled = true;
     }
 
     private void RemoveLastPoint()
